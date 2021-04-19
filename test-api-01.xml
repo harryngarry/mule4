@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="66acb969-0180-4144-a004-c4739f95fef0" basePath="/testAPI" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="d3afe96d-9009-4627-9175-54938a5d6dfb">
+		<http:request-connection protocol="HTTPS" host="reqres.in"/>
+	</http:request-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="14ba0fbc-241a-4a72-824a-0406cf6b9692" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="root" database="cars" />
+	</db:config>
+	<flow name="test-api-01Flow" doc:id="2290387d-82b4-4a34-9307-338d50e94f30" >
+		<http:listener doc:name="Listener" doc:id="0c8f589a-2043-4f4f-8211-eb737706e011" config-ref="HTTP_Listener_config" path="/getUsers"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3567ed45-8a91-4e0d-a893-6214cecad53d" message="#[payload]"/>
+		<http:request method="GET" doc:name="Request" doc:id="3d03e29c-6492-4448-917b-f4385fbea93b" config-ref="HTTP_Request_configuration" path="/api/users">
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	page : attributes.queryParams.page
+}]]]></http:query-params>
+		</http:request>
+		<flow-ref doc:name="java-tojson" doc:id="62651ad1-d980-4d0f-a91b-19e6f5215ec3" name="java2json-converter"/>
+	</flow>
+	<sub-flow name="java2json-converter" doc:id="f5257a53-2c20-4d0e-92ec-e89c56132830" >
+		<ee:transform doc:name="Transform Message" doc:id="8d962596-b2e3-4d78-8123-68e45c66c956">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<flow name="test-api-01Flow1" doc:id="be2ed31e-b731-4b76-8d05-7569f5837e3b" >
+		<http:listener doc:name="Listener" doc:id="ee3d97b8-3f3a-49b3-a81b-0d7e4bbf6bc7" config-ref="HTTP_Listener_config" path="/getCustomers"/>
+		<db:select doc:name="Select" doc:id="0a0152dc-5ec4-48ee-81fa-39a49cc644bf" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from customers;]]></db:sql>
+		</db:select>
+		<flow-ref doc:name="Flow Reference" doc:id="dfce0d7d-7afa-4309-bffd-dbe9690c5948" name="java2json-converter"/>
+	</flow>
+</mule>
